@@ -13,7 +13,7 @@ Analyze the following recent news and updates about the NSE-listed company "${st
 
 ${recentFeeds.join("\n")}
 
-From this feed, extract exactly the top 3 reasons why this company may be appearing as a monthly gainer in the stock market.
+From this feed, extract exactly the top 3 reasons why this company may be appearing as a daily loser in the stock market.
 
 Only return a numbered list in this exact format:
 1. Title: Short explanation

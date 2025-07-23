@@ -51,4 +51,6 @@ jobs:
           echo "WP_PASS=${{ secrets.WP_PASS }}" >> .env
 
       - name: Run scraper
-        run: node index.js
+        run: |
+          node index.js
+          node indexL.js

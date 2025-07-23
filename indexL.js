@@ -1,8 +1,8 @@
 import puppeteer from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
 import chalk from "chalk";
-import { getTopGainers } from "./rediff_gainer.js";
-import { summariseFeeds } from "./groq.js";
+import { getTopLoser } from "./rediff_loser.js";
+import { summariseFeeds } from "./groqL.js";
 import { visitStockEdge } from "./stockEdge.js";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -19,7 +19,7 @@ async function sendToWordPress(
   nseSymbol,
   changePercent,
   reasons,
-  tag = "dailygainer"
+  tag = "dailylosers"
 ) {
   try {
     const response = await axios.post(
@@ -27,7 +27,7 @@ async function sendToWordPress(
       {
         stockName,
         nseSymbol,
-        changePercent: `+${changePercent.toFixed(2)}%`,
+        changePercent: `-${changePercent.toFixed(2)}%`,
         summary1: reasons[0],
         summary2: reasons[1],
         summary3: reasons[2],
@@ -66,8 +66,8 @@ async function sendToWordPress(
   });
 
   const [page] = await browser.pages();
-  const gainers = await getTopGainers(page);
-  console.log(chalk.cyan(`✔ Found ${gainers.length} gainers ≥ 7`));
+  const gainers = await getTopLoser(page);
+  console.log(chalk.cyan(`✔ Found ${gainers.length} gainers ≥ -7.0`));
 
   for (const g of gainers) {
     console.log(chalk.yellow(`\n🔍 Processing ${g.name} ...`));
