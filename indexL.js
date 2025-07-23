@@ -27,7 +27,7 @@ async function sendToWordPress(
       {
         stockName,
         nseSymbol,
-        changePercent: `-${changePercent.toFixed(2)}%`,
+        changePercent: `${changePercent.toFixed(2)}%`,
         summary1: reasons[0],
         summary2: reasons[1],
         summary3: reasons[2],
