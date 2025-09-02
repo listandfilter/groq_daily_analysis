@@ -23,7 +23,7 @@ Only return a numbered list in this exact format:
 Do NOT include any introductions, summaries, or extra lines. Be concise (≤ 180 characters per reason).Also dont mention like "here's reasons" etc only summaries`;
 
   const { choices } = await groq.chat.completions.create({
-    model: "llama3-70b-8192",
+    model: "llama-3.1-8b-instant",
     messages: [{ role: "user", content: prompt }],
     max_tokens: 256,
     temperature: 0.4,
