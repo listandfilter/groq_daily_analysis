@@ -1,14 +1,23 @@
+// ✅ DAILY GAINER (IPv4 FORCED + safe summaries to avoid WP missing_field)
 import puppeteer from "puppeteer-extra";
 import Stealth from "puppeteer-extra-plugin-stealth";
 import chalk from "chalk";
+import axios from "axios";
+import dotenv from "dotenv";
+import https from "https";
+
 import { getTopGainers } from "./rediff_gainer.js";
 import { summariseFeeds } from "./groq.js";
 import { visitStockEdge } from "./stockEdge.js";
-import axios from "axios";
-import dotenv from "dotenv";
-dotenv.config();
 
+dotenv.config();
 puppeteer.use(Stealth());
+
+/* ---------- IPv4 Forced HTTPS Agent ---------- */
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  family: 4, // ✅ FORCE IPv4 (fixes GitHub Actions IPv6 issues)
+});
 
 /* ---------- Helpers ---------- */
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -21,33 +30,55 @@ async function sendToWordPress(
   reasons,
   tag = "dailygainer"
 ) {
-  try {
-    const response = await axios.post(
-      wpApiUrl,
-      {
-        stockName,
-        nseSymbol,
-        changePercent: `+${changePercent.toFixed(2)}%`,
-        summary1: reasons[0],
-        summary2: reasons[1],
-        summary3: reasons[2],
-        tag,
-      },
-      {
-        auth: {
-          username: process.env.WP_USER,
-          password: process.env.WP_PASS,
-        },
-      }
-    );
+  // ✅ Always send 3 summaries (prevents "Field summary2 is required")
+  const safeReasons = [
+    reasons?.[0] || "No recent feeds found",
+    reasons?.[1] || "Market sentiment remains neutral",
+    reasons?.[2] || "Price action under observation",
+  ];
 
-    console.log(`Posted to WordPress for ${stockName}:`, response.data);
+  const payload = {
+    stockName,
+    nseSymbol,
+    changePercent: `+${Number(changePercent).toFixed(2)}%`,
+    summary1: safeReasons[0],
+    summary2: safeReasons[1],
+    summary3: safeReasons[2],
+    tag,
+  };
+
+  try {
+    const response = await axios.post(wpApiUrl, payload, {
+      auth: {
+        username: process.env.WP_USER,
+        password: process.env.WP_PASS,
+      },
+      timeout: 60000,
+      httpsAgent, // ✅ IPv4 forced
+      headers: {
+        "Content-Type": "application/json",
+        "User-Agent": "Mozilla/5.0",
+        Accept: "application/json",
+      },
+      validateStatus: () => true,
+    });
+
+    console.log(`📩 WP status for ${stockName}:`, response.status);
+
+    if (response.status < 200 || response.status >= 300) {
+      console.error(`❌ WordPress API error for ${stockName}:`, response.data);
+      return null;
+    }
+
+    console.log(`✅ Posted to WordPress for ${stockName}`);
     return response.data;
   } catch (error) {
-    console.error(
-      `WordPress API error for ${stockName}:`,
-      error.response?.data || error.message
-    );
+    console.error(`❌ Axios/network error for ${stockName}:`, {
+      message: error.message,
+      code: error.code,
+      status: error.response?.status,
+      data: error.response?.data,
+    });
     return null;
   }
 }
@@ -86,6 +117,7 @@ async function sendToWordPress(
       );
 
       await sendToWordPress(g.name, symbol, g.change, reasons);
+      await wait(1000);
     } catch (err) {
       console.log(chalk.red(`Skipped ${g.name}: ${err.message}`));
     }
